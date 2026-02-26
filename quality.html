@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ApexCare – لوحة الجودة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4f8;--surface:#fff;--border:#dde3ec;
+  --accent:#1d4ed8;--accent-h:#1e40af;
+  --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --text:#1e293b;--muted:#64748b;--radius:12px;
+}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── HEADER ── */
+header{background:var(--accent);color:#fff;padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+header h1{font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:8px}
+header a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;
+  border:1px solid rgba(255,255,255,.4);padding:6px 14px;border-radius:7px;transition:.2s}
+header a:hover{background:rgba(255,255,255,.15)}
+
+/* ── LOGIN ── */
+#loginScreen{max-width:380px;margin:80px auto 0;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;
+  box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
+#loginScreen h2{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+#loginScreen p{font-size:.85rem;color:var(--muted);margin-bottom:24px}
+#loginScreen input{width:100%;padding:11px 14px;border:1.5px solid var(--border);
+  border-radius:10px;font-family:'Tajawal',sans-serif;font-size:1rem;
+  text-align:center;letter-spacing:3px;margin-bottom:12px;transition:.2s;direction:ltr}
+#loginScreen input:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(29,78,216,.12)}
+#loginScreen input.shake{animation:shake .35s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#loginError{color:var(--danger);font-size:.82rem;margin-bottom:10px;display:none}
+
+/* ── MAIN ── */
+#mainContent{display:none;max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;margin-bottom:16px;
+  box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.card-title{font-size:.9rem;font-weight:700;color:var(--accent);
+  margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-title span{display:flex;align-items:center;gap:6px}
+
+/* ── FILTERS ── */
+.filter-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto auto;gap:10px;align-items:end}
+.field{display:flex;flex-direction:column;gap:4px}
+label{font-size:.76rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+input[type=date],input[type=number],select{
+  padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;
+  font-family:'Tajawal',sans-serif;font-size:.9rem;color:var(--text);
+  background:#fff;width:100%;transition:.2s}
+input:focus,select:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(29,78,216,.1)}
+
+/* ── QUICK BTNS ── */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;
+  border-radius:9px;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.85rem;
+  font-weight:700;transition:.18s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-h)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-outline{background:#fff;color:var(--accent);border:1.5px solid var(--accent)}
+.btn-outline:hover{background:#eff6ff}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-login{background:var(--accent);color:#fff;width:100%;padding:12px;justify-content:center}
+.btn-login:hover{background:var(--accent-h)}
+
+/* Spinner */
+.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite;display:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+.loading .spin{display:block}.loading .btn-txt{display:none}
+
+/* ── KPIs ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 12px;
+  text-align:center;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
+.kpi.blue::before{background:var(--accent)}
+.kpi.green::before{background:var(--success)}
+.kpi.yellow::before{background:var(--warn)}
+.kpi.red::before{background:var(--danger)}
+.kpi.gray::before{background:var(--muted)}
+.kpi-lbl{font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:7px}
+.kpi-val{font-size:1.55rem;font-weight:800;line-height:1}
+.kpi.blue   .kpi-val{color:var(--accent)}
+.kpi.green  .kpi-val{color:var(--success)}
+.kpi.yellow .kpi-val{color:var(--warn)}
+.kpi.red    .kpi-val{color:var(--danger)}
+.kpi.gray   .kpi-val{color:var(--muted)}
+.kpi-sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+
+/* ── ALERTS ── */
+.alert{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;
+  border-radius:9px;font-size:.86rem;margin-bottom:8px;font-weight:500}
+.alert.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e}
+.alert.bad {background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+.alert.ok  {background:#f0fdf4;border:1px solid #86efac;color:#166534}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.83rem}
+th{background:#f8fafc;color:var(--muted);padding:9px 12px;text-align:right;
+  font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:700}
+.badge-y{background:#fee2e2;color:var(--danger)}.badge-n{background:#f0fdf4;color:var(--success)}
+.rate-ok{color:var(--success);font-weight:700}
+.rate-warn{color:var(--warn);font-weight:700}
+.rate-bad{color:var(--danger);font-weight:700}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .ico{font-size:2.5rem;margin-bottom:10px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:22px;left:50%;
+  transform:translateX(-50%) translateY(70px);background:#1e293b;color:#fff;
+  border-radius:10px;padding:12px 22px;font-size:.88rem;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:999;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  max-width:340px;width:90%;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok {background:#166534}.#toast.err{background:#991b1b}
+
+/* ── PROGRESS ── */
+#progressBar{height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);
+  border-radius:3px;display:none;margin-bottom:12px}
+
+@media(max-width:800px){
+  .filter-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:500px){
+  .filter-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 ApexCare – لوحة الجودة</h1>
+  <a href="supervisor.html">📋 متابعة المشرفة</a>
+</header>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginScreen">
+  <h2>🔐 تسجيل الدخول</h2>
+  <p>أدخل رمز دخول الجودة للمتابعة</p>
+  <div id="loginError">رمز الدخول غير صحيح</div>
+  <input type="password" id="keyInput" placeholder="رمز الدخول" autocomplete="off" maxlength="20">
+  <button class="btn btn-login" onclick="doLogin()">دخول</button>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="mainContent">
+
+  <!-- Filters -->
+  <div class="card">
+    <div class="card-title"><span>🔍 الفلاتر</span></div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn btn-outline" onclick="setThisWeek()">هذا الأسبوع</button>
+      <button class="btn btn-outline" onclick="setThisMonth()">هذا الشهر</button>
+    </div>
+    <div class="filter-grid">
+      <div class="field">
+        <label>من</label>
+        <input type="date" id="f-start">
+      </div>
+      <div class="field">
+        <label>إلى</label>
+        <input type="date" id="f-end">
+      </div>
+      <div class="field">
+        <label>الفرع</label>
+        <select id="f-branch">
+          <option value="all">الكل</option>
+          <option value="مركز الاتصال">مركز الاتصال</option>
+          <option value="عنيزة">عنيزة</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>الموظفة</label>
+        <select id="f-agent"><option value="all">الكل</option></select>
+      </div>
+      <button class="btn btn-primary" id="loadBtn" onclick="loadData()">
+        <div class="spin"></div>
+        <span class="btn-txt">🔄 تحديث</span>
+      </button>
+      <button class="btn btn-success" onclick="exportCSV()">📥 CSV</button>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div id="progressBar"></div>
+
+  <!-- KPIs -->
+  <div class="card" id="kpiCard" style="display:none">
+    <div class="card-title"><span>🎯 مؤشرات الأداء</span>
+      <span id="recordCount" style="font-size:.78rem;font-weight:400;color:var(--muted)"></span>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div id="alertsArea" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="card" id="tableCard" style="display:none">
+    <div class="card-title"><span>📋 السجل التفصيلي</span></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>التاريخ</th><th>الفرع</th><th>الموظفة</th>
+            <th>الإجمالي</th><th>المجاب</th><th>معدل الرد</th>
+            <th>غير مجاب</th><th>إعادة تواصل</th><th>الدقائق</th>
+            <th>مشكلة اتصال</th><th>مشكلة موحد</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="emptyState" class="empty card">
+    <div class="ico">📊</div>
+    <p>اختر النطاق الزمني واضغط «تحديث» لعرض البيانات</p>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- ══ CONFIG ══ -->
+<script>
+// ▼▼▼ ضع رابط Apps Script Web App هنا ▼▼▼
+const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+</script>
+
+<script>
+// ── LOGIN ────────────────────────────────────────────────────
+function doLogin() {
+  const key = document.getElementById("keyInput").value.trim();
+  if (!key) { shakeInput(); return; }
+  sessionStorage.setItem("authKey", key);
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("mainContent").style.display = "block";
+  loadAgents();
+}
+
+function shakeInput() {
+  const inp = document.getElementById("keyInput");
+  inp.classList.add("shake");
+  document.getElementById("loginError").style.display = "block";
+  setTimeout(() => inp.classList.remove("shake"), 400);
+}
+
+document.getElementById("keyInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") doLogin();
+});
+
+(function () {
+  if (sessionStorage.getItem("authKey")) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("mainContent").style.display = "block";
+    setThisWeek();
+    loadAgents();
+  }
+})();
+
+// ── DATE HELPERS ─────────────────────────────────────────────
+const fmt = d => d.toISOString().slice(0,10);
+
+function setThisWeek() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const mon = new Date(now); mon.setDate(now.getDate() - ((day + 6) % 7));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  document.getElementById("f-start").value = fmt(mon);
+  document.getElementById("f-end").value   = fmt(sun);
+}
+
+function setThisMonth() {
+  const now = new Date();
+  document.getElementById("f-start").value = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+  document.getElementById("f-end").value   = fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+}
+
+// ── LOAD AGENTS ──────────────────────────────────────────────
+async function loadAgents() {
+  const authKey = sessionStorage.getItem("authKey") || "";
+  try {
+    const res  = await fetch(`${API_URL}?authKey=${encodeURIComponent(authKey)}&start=2020-01-01&end=2099-12-31`);
+    const json = await res.json();
+    if (!json.ok) return;
+    const sel = document.getElementById("f-agent");
+    sel.innerHTML = '<option value="all">الكل</option>';
+    (json.agents || []).forEach(a => {
+      const o = document.createElement("option");
+      o.value = a; o.textContent = esc(a);
+      sel.appendChild(o);
+    });
+  } catch(e) {}
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────
+let currentRows = [];
+
+async function loadData() {
+  const authKey = sessionStorage.getItem("authKey") || "";
+  const start   = document.getElementById("f-start").value;
+  const end     = document.getElementById("f-end").value;
+  const branch  = document.getElementById("f-branch").value;
+  const agent   = document.getElementById("f-agent").value;
+
+  if (!start || !end) { showToast("اختر نطاق التاريخ", "warn"); return; }
+  if (start > end)    { showToast("تاريخ البداية يجب أن يسبق النهاية", "warn"); return; }
+
+  const btn = document.getElementById("loadBtn");
+  btn.disabled = true; btn.classList.add("loading");
+  showProgress(true);
+
+  let url = `${API_URL}?authKey=${encodeURIComponent(authKey)}&start=${start}&end=${end}`;
+  if (branch !== "all") url += `&branch=${encodeURIComponent(branch)}`;
+  if (agent  !== "all") url += `&agent=${encodeURIComponent(agent)}`;
+
+  try {
+    const res  = await fetch(url);
+    const json = await res.json();
+
+    if (!json.ok) {
+      if (json.error === "Unauthorized") {
+        showToast("🔒 رمز الدخول غير صحيح", "err");
+        sessionStorage.removeItem("authKey");
+        location.reload();
+      } else {
+        showToast("❌ " + (json.error || "خطأ"), "err");
+      }
+      return;
+    }
+
+    currentRows = json.rows || [];
+    renderDashboard(currentRows);
+
+  } catch (err) {
+    showToast("❌ تعذّر الاتصال – تحقق من API_URL", "err");
+    console.error(err);
+  } finally {
+    btn.disabled = false; btn.classList.remove("loading");
+    showProgress(false);
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderDashboard(rows) {
+  if (!rows.length) {
+    document.getElementById("kpiCard").style.display    = "none";
+    document.getElementById("tableCard").style.display  = "none";
+    document.getElementById("emptyState").style.display = "block";
+    document.getElementById("emptyState").querySelector("p").textContent = "لا توجد سجلات للفترة المختارة";
+    return;
+  }
+  document.getElementById("emptyState").style.display = "none";
+  document.getElementById("kpiCard").style.display    = "block";
+  document.getElementById("tableCard").style.display  = "block";
+
+  // Aggregate
+  const sumOf  = k => rows.reduce((a,r) => a + (+(r[k]||0)), 0);
+  const total  = sumOf("TotalCalls");
+  const ans    = sumOf("AnsweredCalls");
+  const unansCnt = sumOf("UnansweredEOD");
+  const cbDone = sumOf("CallbacksCompleted");
+  const cbMins = sumOf("CallbackTimeMinutes");
+  const n      = rows.length;
+
+  const rate      = total > 0 ? ans / total * 100 : 0;
+  const unansPct  = total > 0 ? unansCnt / total * 100 : 0;
+  const cbEff     = unansCnt > 0 ? Math.min(100, cbDone / unansCnt * 100) : 100;
+  const avgMins   = cbDone  > 0 ? cbMins / cbDone : 0;
+  const daysCallI = rows.filter(r => r.CallIssues === "Yes").length;
+  const daysUniI  = rows.filter(r => r.UnifiedNumberIssues === "Yes").length;
+
+  const rC  = rate >= 90 ? "green" : rate >= 85 ? "yellow" : "red";
+  const uC  = unansPct <= 5 ? "green" : unansPct <= 15 ? "yellow" : "red";
+  const cbC = cbEff >= 85 ? "green" : cbEff >= 70 ? "yellow" : "red";
+
+  document.getElementById("recordCount").textContent = `${n} سجل`;
+  document.getElementById("kpiGrid").innerHTML = `
+    <div class="kpi blue"><div class="kpi-lbl">إجمالي الاتصالات</div><div class="kpi-val">${total.toLocaleString("ar")}</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">المجاب عليها</div><div class="kpi-val">${ans.toLocaleString("ar")}</div></div>
+    <div class="kpi ${rC}"><div class="kpi-lbl">معدل الرد</div><div class="kpi-val">${rate.toFixed(1)}%</div><div class="kpi-sub">الهدف ≥ 90%</div></div>
+    <div class="kpi ${uC}"><div class="kpi-lbl">غير المجاب</div><div class="kpi-val">${unansCnt.toLocaleString("ar")}</div><div class="kpi-sub">${unansPct.toFixed(1)}%</div></div>
+    <div class="kpi ${cbC}"><div class="kpi-lbl">كفاءة إعادة التواصل</div><div class="kpi-val">${cbEff.toFixed(0)}%</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">إعادة تواصل</div><div class="kpi-val">${cbDone.toLocaleString("ar")}</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">مجموع الدقائق</div><div class="kpi-val">${cbMins.toLocaleString("ar")}</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">متوسط الدقائق</div><div class="kpi-val">${avgMins.toFixed(1)}</div><div class="kpi-sub">لكل رد</div></div>
+    <div class="kpi ${daysCallI > 0 ? "red" : "green"}"><div class="kpi-lbl">أيام مشكلة اتصال</div><div class="kpi-val">${daysCallI}</div></div>
+    <div class="kpi ${daysUniI  > 0 ? "red" : "green"}"><div class="kpi-lbl">أيام مشكلة موحد</div><div class="kpi-val">${daysUniI}</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">عدد السجلات</div><div class="kpi-val">${n}</div></div>
+  `;
+
+  // Alerts
+  const alerts = [];
+  if (rate < 85)       alerts.push({t:"bad",  m:`🚨 معدل الرد ${rate.toFixed(1)}% – أقل من 85%، يتطلب تدخلاً فورياً`});
+  else if (rate < 90)  alerts.push({t:"warn", m:`⚠️ معدل الرد ${rate.toFixed(1)}% – دون 90%`});
+  else                 alerts.push({t:"ok",   m:`✅ معدل الرد ممتاز: ${rate.toFixed(1)}%`});
+  if (unansPct > 5)    alerts.push({t:"warn", m:`📵 نسبة غير المجاب ${unansPct.toFixed(1)}% – تجاوزت 5%`});
+  if (daysCallI > 0)   alerts.push({t:"warn", m:`🔴 ${daysCallI} يوم بمشكلة اتصالات مُسجَّلة`});
+  if (daysUniI  > 0)   alerts.push({t:"warn", m:`📞 ${daysUniI} يوم بمشكلة رقم موحد`});
+
+  document.getElementById("alertsArea").innerHTML = alerts.map(a =>
+    `<div class="alert ${a.t}">${esc(a.m)}</div>`
+  ).join("");
+
+  // Table
+  document.getElementById("tableBody").innerHTML = rows.map(r => {
+    const tc = +(r.TotalCalls||0), ac = +(r.AnsweredCalls||0);
+    const rt = tc > 0 ? (ac/tc*100).toFixed(1)+"%" : "—";
+    const rc = tc > 0 ? (ac/tc >= .9 ? "rate-ok" : ac/tc >= .85 ? "rate-warn" : "rate-bad") : "";
+    return `<tr>
+      <td>${esc(String(r.Date||""))}</td>
+      <td>${esc(r.Branch||"")}</td>
+      <td style="font-weight:600">${esc(r.AgentName||"")}</td>
+      <td>${tc}</td><td>${ac}</td>
+      <td class="${rc}">${rt}</td>
+      <td>${+(r.UnansweredEOD||0)}</td>
+      <td>${+(r.CallbacksCompleted||0)}</td>
+      <td>${+(r.CallbackTimeMinutes||0)}</td>
+      <td><span class="badge ${r.CallIssues==="Yes"?"badge-y":"badge-n"}">${r.CallIssues==="Yes"?"نعم":"لا"}</span></td>
+      <td><span class="badge ${r.UnifiedNumberIssues==="Yes"?"badge-y":"badge-n"}">${r.UnifiedNumberIssues==="Yes"?"نعم":"لا"}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+// ── EXPORT CSV ───────────────────────────────────────────────
+function exportCSV() {
+  if (!currentRows.length) { showToast("لا توجد بيانات للتصدير", "warn"); return; }
+  const hdrs = ["Date","Branch","AgentName","TotalCalls","AnsweredCalls",
+                "UnansweredEOD","CallbacksCompleted","CallbackTimeMinutes",
+                "CallIssues","UnifiedNumberIssues"];
+  const csvHdrs = ["التاريخ","الفرع","الموظفة","الإجمالي","المجاب",
+                   "غير المجاب","إعادة التواصل","الدقائق","مشكلة اتصال","مشكلة موحد"];
+
+  let csv = "\uFEFF" + csvHdrs.join(",") + "\n"; // BOM for Excel Arabic
+  currentRows.forEach(r => {
+    csv += hdrs.map(k => `"${String(r[k]||"").replace(/"/g,'""')}"`).join(",") + "\n";
+  });
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url;
+  a.download = `quality-report-${document.getElementById("f-start").value}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function esc(s) { const d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+function showProgress(on) {
+  const bar = document.getElementById("progressBar");
+  bar.style.display = on ? "block" : "none";
+  bar.style.width   = on ? "0" : "100%";
+  if (on) setTimeout(() => { bar.style.width="75%"; }, 40);
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = type === "ok" ? "ok" : "";
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 4000);
+}
+</script>
+</body>
+</html>
