@@ -216,27 +216,27 @@ input.err,select.err{border-color:var(--danger)}
       <div class="card-title">📱 المكالمات</div>
       <div class="grid grid-2">
         <div class="field">
-          <label>إجمالي الاتصالات</label>
+          <label>إجمالي المكالمات الواردة</label>
           <input type="number" id="f-total" min="0" value="0">
           <span class="err-msg" id="e-total">رقم غير صالح</span>
         </div>
         <div class="field">
-          <label>المجاب عليها</label>
+          <label> المكالمات المجاب عليها</label>
           <input type="number" id="f-answered" min="0" value="0">
           <span class="err-msg" id="e-answered">يجب أن تكون ≤ الإجمالي</span>
         </div>
         <div class="field">
-          <label>عدد إعادة التواصل</label>
+          <label>عدد مكالمات إعادة الاتصال</label>
           <input type="number" id="f-cbc" min="0" value="0">
           <span class="err-msg" id="e-cbc">رقم غير صالح</span>
         </div>
         <div class="field">
-          <label>مجموع دقائق إعادة التواصل</label>
+          <label>إجمالي مدة إعادة الاتصال(بالدقائق)</label>
           <input type="number" id="f-cbm" min="0" value="0">
           <span class="err-msg" id="e-cbm">رقم غير صالح</span>
         </div>
         <div class="field">
-          <label>غير المجاب نهاية اليوم</label>
+          <label>عدد المكالمات التي لم يتم الرد عليها نهاية اليوم</label>
           <input type="number" id="f-unanswered" min="0" value="0">
           <span class="err-msg" id="e-unanswered">رقم غير صالح</span>
         </div>
@@ -248,7 +248,7 @@ input.err,select.err{border-color:var(--danger)}
       <div class="card-title">⚠️ المشكلات</div>
       <div class="grid grid-2">
         <div class="field">
-          <label>مشكلة اتصالات؟</label>
+          <label>هل يوجد مشكلة في المكالمات ؟</label>
           <div class="toggle">
             <input type="radio" name="callIssues" id="ci-no"  value="no"  checked>
             <label for="ci-no">لا</label>
@@ -257,7 +257,7 @@ input.err,select.err{border-color:var(--danger)}
           </div>
         </div>
         <div class="field">
-          <label>مشكلة الرقم الموحد؟</label>
+          <label>هل يوجد مشكلة في الرقم الموحد؟</label>
           <div class="toggle">
             <input type="radio" name="uniIssues" id="ui-no"  value="no"  checked>
             <label for="ui-no">لا</label>
@@ -281,7 +281,7 @@ input.err,select.err{border-color:var(--danger)}
 <!-- ══ CONFIG ══ -->
 <script>
 // ▼▼▼ ضع رابط Apps Script Web App هنا ▼▼▼
-const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+const API_URL = "https://script.google.com/macros/s/AKfycbwdAPvksOrndUrkkNAgY7_vvrVQt_kWcTUFDOV4JgUTI6znfh9jLiGR7zDz4_yz3AMkJw/exec";
 </script>
 
 <script>
