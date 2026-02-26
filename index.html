@@ -371,17 +371,54 @@ function validate() {
 );
 
 // ── SUBMIT ───────────────────────────────────────────────────
+const SUPERVISOR_KEY = "RW-2026";
+
 document.getElementById("reportForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!validate()) return;
 
-  const authKey = sessionStorage.getItem(AUTH_STORAGE_KEY) || "";
-  if (!authKey) {
-    showToast("🔒 انتهت الجلسة. أعد تسجيل الدخول", "err");
-    document.getElementById("mainContent").style.display = "none";
-    document.getElementById("loginScreen").style.display = "block";
-    return;
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.classList.add("loading");
+
+  const payload = {
+    authKey: SUPERVISOR_KEY,
+    Date: document.getElementById("f-date").value,
+    Branch: document.getElementById("f-branch").value,
+    AgentName: document.getElementById("f-agent").value.trim(),
+    TotalCalls: +document.getElementById("f-total").value,
+    AnsweredCalls: +document.getElementById("f-answered").value,
+    UnansweredEOD: +document.getElementById("f-unanswered").value,
+    CallbacksCompleted: +document.getElementById("f-cbc").value,
+    CallbackTimeMinutes: +document.getElementById("f-cbm").value,
+    LateMessages: 0,
+    OpenChatsEOD: 0,
+    CallIssues: document.querySelector('input[name=callIssues]:checked').value === "yes" ? "Yes" : "No",
+    UnifiedNumberIssues: document.querySelector('input[name=uniIssues]:checked').value === "yes" ? "Yes" : "No",
+    Notes: ""
+  };
+
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    showToast("✅ تم الإرسال (تأكد من ظهور الصف في الشيت)", "ok");
+    showKPIs(payload);
+    resetForm();
+
+  } catch (err) {
+    showToast("❌ فشل الاتصال بالخادم", "err");
+    console.error(err);
+
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("loading");
   }
+});
 
   const btn = document.getElementById("submitBtn");
   btn.disabled = true; btn.classList.add("loading");
