@@ -1,32 +1,37 @@
 // ============================================================
-// ApexCare Call Center – Google Apps Script (Code.gs)
+// Code.gs – Google Apps Script Web App
+// ApexCare Call Center – Daily Metrics Submission Handler
 // ============================================================
 
-const SHEET_NAME = "DailyMetrics";
-const HEADERS = [
-  "Timestamp","Date","Branch","AgentName",
-  "TotalCalls","AnsweredCalls","UnansweredEOD",
-  "CallbacksCompleted","CallbackTimeMinutes",
-  "LateMessages","OpenChatsEOD",
-  "CallIssues","UnifiedNumberIssues","Notes"
+// Sheet tab name – must exist in the bound spreadsheet
+var SHEET_NAME = "DailyMetrics";
+
+// Expected columns (for documentation; row order must match appendRow call in doPost)
+var HEADERS = [
+  "Timestamp", "Date", "Branch", "AgentName",
+  "TotalCalls", "AnsweredCalls", "UnansweredEOD",
+  "CallbacksCompleted", "CallbackTimeMinutes",
+  "CallIssues", "UnifiedNumberIssues", "Notes"
 ];
 
-// ── Run this ONCE manually from Apps Script editor ──────────
+// ── Run ONCE manually from the Apps Script editor ───────────
+// Select "setupKeys" from the function dropdown and click Run.
+// This stores the auth keys in Script Properties.
 function setupKeys() {
-  const props = PropertiesService.getScriptProperties();
-  props.setProperties({
+  PropertiesService.getScriptProperties().setProperties({
     SUPERVISOR_KEY: "RW-2026",
     QUALITY_KEY:    "QA-2026"
   });
-  Logger.log("Keys set successfully.");
+  Logger.log("✅ Keys set: SUPERVISOR_KEY=RW-2026, QUALITY_KEY=QA-2026");
 }
 
-// ── Helpers ─────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
+
 function getKeys() {
-  const props = PropertiesService.getScriptProperties();
+  var p = PropertiesService.getScriptProperties();
   return {
-    supervisorKey: props.getProperty("SUPERVISOR_KEY"),
-    qualityKey:    props.getProperty("QUALITY_KEY")
+    supervisorKey: p.getProperty("SUPERVISOR_KEY") || "",
+    qualityKey:    p.getProperty("QUALITY_KEY")    || ""
   };
 }
 
@@ -36,121 +41,207 @@ function jsonOut(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getOrCreateSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(HEADERS);
-    const hdr = sheet.getRange(1, 1, 1, HEADERS.length);
-    hdr.setBackground("#0f172a");
-    hdr.setFontColor("#ffffff");
-    hdr.setFontWeight("bold");
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
+// Parses application/x-www-form-urlencoded body string into an object.
+function parseFormEncoded(body) {
+  var result = {};
+  if (!body) return result;
+  body.split("&").forEach(function(pair) {
+    var idx = pair.indexOf("=");
+    if (idx > -1) {
+      var k = decodeURIComponent(pair.slice(0, idx).replace(/\+/g, " "));
+      var v = decodeURIComponent(pair.slice(idx + 1).replace(/\+/g, " "));
+      result[k] = v;
+    }
+  });
+  return result;
 }
 
-// ── doPost ───────────────────────────────────────────────────
-function doPost(e) {
-  try {
-    const body = JSON.parse(e.postData.contents);
-    const { supervisorKey, qualityKey } = getKeys();
-    const provided = (body.authKey || "").trim();
+// Safely parses an integer; returns 0 for NaN or negative values.
+function toNum(val) {
+  var n = parseInt(val, 10);
+  return (isNaN(n) || n < 0) ? 0 : n;
+}
 
-    if (provided !== supervisorKey && provided !== qualityKey) {
+// Normalises truthy-ish values to "Yes" or "No" for the sheet.
+function toYesNo(val) {
+  if (val === true || val === "true" || val === "Yes" || val === "yes") return "Yes";
+  return "No";
+}
+
+// ── doGet – health check / auth validation / data fetch ──────
+//
+// Behaviour:
+//   GET (no params)               → { ok:true, message:"..." }   health check
+//   GET ?authKey=KEY              → { ok:true, role:"..." }  OR  { ok:false, error:"Unauthorized" }
+//   GET ?authKey=QA-KEY&date=...  → spreadsheet rows (quality dashboard)
+//
+function doGet(e) {
+  try {
+    var params   = e.parameter || {};
+    var provided = (params.authKey || "").trim();
+
+    // ── Health check (no authKey supplied) ───────────────────
+    if (!provided) {
+      return jsonOut({ ok: true, message: "Web App is live." });
+    }
+
+    // ── Validate key ─────────────────────────────────────────
+    var keys      = getKeys();
+    var isSuper   = (provided === keys.supervisorKey);
+    var isQuality = (provided === keys.qualityKey);
+
+    if (!isSuper && !isQuality) {
+      Logger.log("doGet: Unauthorized attempt with key: " + provided);
       return jsonOut({ ok: false, error: "Unauthorized" });
     }
 
-    // Server-side validation
-    const errs = [];
-    if (!body.date)      errs.push("date required");
-    if (!body.branch || !["مركز الاتصال","عنيزة"].includes(body.branch))
-      errs.push("valid branch required");
-    if (!body.agentName || !body.agentName.trim())
-      errs.push("agentName required");
-
-    const numFields = ["totalCalls","answeredCalls","unansweredEOD",
-                       "callbacksCompleted","callbackTimeMinutes",
-                       "lateMessages","openChatsEOD"];
-    const n = {};
-    for (const f of numFields) {
-      const v = Number(body[f]);
-      if (isNaN(v) || v < 0) errs.push(f + " must be >= 0");
-      n[f] = v;
+    // ── Auth-only (no data params) – used by supervisor login ─
+    var hasDataParams = params.date || params.start || params.end ||
+                        params.branch || params.agent;
+    if (!hasDataParams) {
+      return jsonOut({ ok: true, role: isQuality ? "quality" : "supervisor" });
     }
-    if (!isNaN(n.answeredCalls) && !isNaN(n.totalCalls) && n.answeredCalls > n.totalCalls)
-      errs.push("answeredCalls > totalCalls");
-    if (!isNaN(n.unansweredEOD) && !isNaN(n.totalCalls) && n.unansweredEOD > n.totalCalls)
-      errs.push("unansweredEOD > totalCalls");
 
-    if (errs.length) return jsonOut({ ok: false, error: errs.join("; ") });
+    // ── Data fetch – requires quality key ────────────────────
+    if (!isQuality) {
+      return jsonOut({ ok: false, error: "Quality key required for data access." });
+    }
 
-    const sheet = getOrCreateSheet();
-    sheet.appendRow([
-      new Date().toISOString(),
-      body.date,
-      body.branch,
-      body.agentName.trim(),
-      n.totalCalls,
-      n.answeredCalls,
-      n.unansweredEOD,
-      n.callbacksCompleted,
-      n.callbackTimeMinutes,
-      n.lateMessages,
-      n.openChatsEOD,
-      body.callIssues          === true || body.callIssues          === "true" ? "Yes" : "No",
-      body.unifiedNumberIssues === true || body.unifiedNumberIssues === "true" ? "Yes" : "No",
-      (body.notes || "").trim()
-    ]);
+    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      return jsonOut({ ok: false, error: 'Sheet "' + SHEET_NAME + '" not found.' });
+    }
 
-    return jsonOut({ ok: true });
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return jsonOut({ ok: true, rows: [], agents: [] });
+
+    var hdrs = data[0];
+    var rows = data.slice(1).map(function(r) {
+      var obj = {};
+      hdrs.forEach(function(h, i) { obj[h] = r[i]; });
+      return obj;
+    });
+
+    // Optional filters
+    if (params.date) {
+      rows = rows.filter(function(r) { return r.Date === params.date; });
+    } else if (params.start && params.end) {
+      rows = rows.filter(function(r) { return r.Date >= params.start && r.Date <= params.end; });
+    }
+    if (params.branch && params.branch !== "all") {
+      rows = rows.filter(function(r) { return r.Branch === params.branch; });
+    }
+    if (params.agent && params.agent !== "all") {
+      rows = rows.filter(function(r) { return r.AgentName === params.agent; });
+    }
+
+    var agentIdx = hdrs.indexOf("AgentName");
+    var agents   = [];
+    var seen     = {};
+    data.slice(1).forEach(function(r) {
+      var a = r[agentIdx];
+      if (a && !seen[a]) { seen[a] = true; agents.push(a); }
+    });
+
+    return jsonOut({ ok: true, rows: rows, agents: agents });
 
   } catch (err) {
+    Logger.log("doGet ERROR: " + err.message);
     return jsonOut({ ok: false, error: err.message });
   }
 }
 
-// ── doGet ────────────────────────────────────────────────────
-function doGet(e) {
+// ── doPost – submit a daily report row ───────────────────────
+//
+// Accepts: application/x-www-form-urlencoded  (GitHub Pages no-cors method)
+//          application/json                   (direct API calls / testing)
+//
+// Required fields: authKey, Date, Branch, AgentName
+// Numeric fields:  TotalCalls, AnsweredCalls, UnansweredEOD,
+//                  CallbacksCompleted, CallbackTimeMinutes
+// Yes/No fields:   CallIssues, UnifiedNumberIssues
+// Optional:        Notes
+//
+function doPost(e) {
   try {
-    const params = e.parameter || {};
-    const { qualityKey } = getKeys();
-    const provided = (params.authKey || "").trim();
+    // ── Parse body ────────────────────────────────────────────
+    var data = {};
+    if (e.postData && e.postData.contents) {
+      var ct = (e.postData.type || "").toLowerCase();
+      if (ct.indexOf("application/json") > -1) {
+        data = JSON.parse(e.postData.contents);
+      } else {
+        // x-www-form-urlencoded (sent by GitHub Pages via no-cors fetch)
+        data = parseFormEncoded(e.postData.contents);
+      }
+    } else {
+      data = e.parameter || {};
+    }
 
-    if (provided !== qualityKey) {
+    // ── Auth ──────────────────────────────────────────────────
+    var keys     = getKeys();
+    var provided = (data.authKey || "").trim();
+    if (!provided ||
+        (provided !== keys.supervisorKey && provided !== keys.qualityKey)) {
+      Logger.log("doPost: Unauthorized key: " + provided);
       return jsonOut({ ok: false, error: "Unauthorized" });
     }
 
-    const sheet = getOrCreateSheet();
-    const data  = sheet.getDataRange().getValues();
-    if (data.length <= 1) return jsonOut({ ok: true, rows: [] });
-
-    const hdrs = data[0];
-    let rows = data.slice(1).map(r => {
-      const obj = {};
-      hdrs.forEach((h, i) => obj[h] = r[i]);
-      return obj;
-    });
-
-    // Filter by date or range
-    if (params.date) {
-      rows = rows.filter(r => r.Date === params.date);
-    } else if (params.start && params.end) {
-      rows = rows.filter(r => r.Date >= params.start && r.Date <= params.end);
+    // ── Required field validation ─────────────────────────────
+    var errs = [];
+    if (!data.Date)                          errs.push("Date required");
+    if (!data.Branch)                        errs.push("Branch required");
+    if (!data.AgentName || !String(data.AgentName).trim()) errs.push("AgentName required");
+    if (errs.length) {
+      Logger.log("doPost validation errors: " + errs.join("; "));
+      return jsonOut({ ok: false, error: errs.join("; ") });
     }
-    if (params.branch && params.branch !== "all")
-      rows = rows.filter(r => r.Branch === params.branch);
-    if (params.agent && params.agent !== "all")
-      rows = rows.filter(r => r.AgentName === params.agent);
 
-    // Distinct agents list
-    const allRows = data.slice(1).map(r => r[hdrs.indexOf("AgentName")]).filter(Boolean);
-    const agents  = [...new Set(allRows)];
+    // ── Numeric coercion ──────────────────────────────────────
+    var total    = toNum(data.TotalCalls);
+    var answered = toNum(data.AnsweredCalls);
+    var unans    = toNum(data.UnansweredEOD);
+    var cbcDone  = toNum(data.CallbacksCompleted);
+    var cbcMins  = toNum(data.CallbackTimeMinutes);
 
-    return jsonOut({ ok: true, rows, agents });
+    // ── Sheet lookup ──────────────────────────────────────────
+    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      Logger.log("doPost: Sheet not found: " + SHEET_NAME);
+      return jsonOut({
+        ok: false,
+        error: 'Sheet tab "' + SHEET_NAME + '" not found. ' +
+               'Please create it in the spreadsheet first.'
+      });
+    }
+
+    // ── Append row ────────────────────────────────────────────
+    var timestamp = new Date().toISOString();
+    sheet.appendRow([
+      timestamp,
+      data.Date,
+      data.Branch,
+      String(data.AgentName).trim(),
+      total,
+      answered,
+      unans,
+      cbcDone,
+      cbcMins,
+      toYesNo(data.CallIssues),
+      toYesNo(data.UnifiedNumberIssues),
+      String(data.Notes || "").trim()
+    ]);
+
+    Logger.log("doPost: Row appended – Agent: " + data.AgentName +
+               "  Date: " + data.Date +
+               "  Branch: " + data.Branch);
+
+    return jsonOut({ ok: true });
 
   } catch (err) {
+    Logger.log("doPost ERROR: " + err.message);
     return jsonOut({ ok: false, error: err.message });
   }
 }
