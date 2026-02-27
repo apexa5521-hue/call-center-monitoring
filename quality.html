@@ -156,7 +156,7 @@ tr:hover td{background:#f8fafc}
 
 <header>
   <h1>📊 ApexCare – لوحة الجودة</h1>
-  <a href="supervisor.html">📋 متابعة المشرفة</a>
+  <a href="index.html">📋 متابعة المشرفة</a>
 </header>
 
 <!-- ══ LOGIN ══ -->
@@ -165,7 +165,10 @@ tr:hover td{background:#f8fafc}
   <p>أدخل رمز دخول الجودة للمتابعة</p>
   <div id="loginError">رمز الدخول غير صحيح</div>
   <input type="password" id="keyInput" placeholder="رمز الدخول" autocomplete="off" maxlength="20">
-  <button class="btn btn-login" onclick="doLogin()">دخول</button>
+  <button class="btn btn-login" id="loginBtn" onclick="doLogin()">
+    <div class="spin"></div>
+    <span class="btn-txt">دخول</span>
+  </button>
 </div>
 
 <!-- ══ MAIN ══ -->
@@ -255,20 +258,40 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyOIYbNFsg0cb0JokTnCJlU
 
 <script>
 // ── LOGIN ────────────────────────────────────────────────────
-function doLogin() {
+async function doLogin() {
   const key = document.getElementById("keyInput").value.trim();
   if (!key) { shakeInput(); return; }
-  sessionStorage.setItem("authKey", key);
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("mainContent").style.display = "block";
-  loadAgents();
+
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true; btn.classList.add("loading");
+
+  try {
+    const res  = await fetch(`${API_URL}?authKey=${encodeURIComponent(key)}`);
+    const json = await res.json();
+
+    if (json.ok && json.role === "quality") {
+      sessionStorage.setItem("authKey", key);
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+      loadAgents();
+    } else {
+      shakeInput();
+    }
+  } catch (e) {
+    document.getElementById("loginError").textContent = "تعذّر الاتصال بالخادم – تحقق من الاتصال بالإنترنت";
+    document.getElementById("loginError").style.display = "block";
+  } finally {
+    btn.disabled = false; btn.classList.remove("loading");
+  }
 }
 
 function shakeInput() {
   const inp = document.getElementById("keyInput");
   inp.classList.add("shake");
-  document.getElementById("loginError").style.display = "block";
-  setTimeout(() => inp.classList.remove("shake"), 400);
+  const err = document.getElementById("loginError");
+  if (!err.textContent) err.textContent = "رمز الدخول غير صحيح";
+  err.style.display = "block";
+  setTimeout(() => { inp.classList.remove("shake"); err.textContent = "رمز الدخول غير صحيح"; }, 400);
 }
 
 document.getElementById("keyInput").addEventListener("keydown", e => {
@@ -484,9 +507,9 @@ function showProgress(on) {
 function showToast(msg, type) {
   const t = document.getElementById("toast");
   t.textContent = msg;
-  t.className = type === "ok" ? "ok" : "";
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 4000);
+  t.className = (type || "") + " show";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = type || "", 4000);
 }
 </script>
 </body>
