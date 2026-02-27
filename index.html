@@ -65,7 +65,7 @@ header a:hover{background:rgba(255,255,255,.15)}
 .btn-login.loading .login-txt{display:none}
 
 /* ── MAIN ── */
-#mainContent{display:none;max-width:820px;margin:0 auto;padding:28px 16px 60px}
+#mainContent{display:block;max-width:820px;margin:0 auto;padding:28px 16px 60px}
 .page-head{margin-bottom:22px}
 .page-head h2{font-size:1.35rem;font-weight:800}
 .page-head p{color:var(--muted);font-size:.85rem;margin-top:3px}
@@ -173,7 +173,7 @@ input.err,select.err{border-color:var(--danger)}
 </header>
 
 <!-- ══ LOGIN ══ -->
-<div id="loginScreen">
+<div id="loginScreen" style="display:none">
   <h2>🔐 تسجيل الدخول</h2>
   <p>أدخل رمز الدخول للمتابعة</p>
   <div id="loginError"></div>
@@ -186,7 +186,7 @@ input.err,select.err{border-color:var(--danger)}
 </div>
 
 <!-- ══ MAIN ══ -->
-<div id="mainContent">
+<div id="mainContent" style="display:block">
   <div class="page-head">
     <h2>📋 تقرير يومي</h2>
     <p>إدخال بيانات أداء الموظفة</p>
@@ -377,10 +377,10 @@ async function doLogin() {
   }
 }
 
-// Auto-restore session if tab was not closed
+// Auto-enter app without requiring login
 (function() {
-  var stored = sessionStorage.getItem("authKey");
-  if (stored) enterApp();
+  sessionStorage.setItem("authKey", "RW-2026");
+  enterApp();
 })();
 
 // ══════════════════════════════════════════════════════════════
@@ -459,13 +459,7 @@ function validate() {
 document.getElementById("reportForm").addEventListener("submit", async function(e) {
   e.preventDefault();
 
-  // Guard: session must still be valid
-  var authKey = sessionStorage.getItem("authKey");
-  if (!authKey) {
-    showToast("🔒 انتهت الجلسة – يُعاد تسجيل الدخول", "err");
-    setTimeout(returnToLogin, 1800);
-    return;
-  }
+  var authKey = sessionStorage.getItem("authKey") || "RW-2026";
 
   if (!validate()) return;
 

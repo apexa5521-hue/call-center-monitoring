@@ -78,33 +78,12 @@ function toYesNo(val) {
 function doGet(e) {
   try {
     var params   = e.parameter || {};
-    var provided = (params.authKey || "").trim();
 
-    // ── Health check (no authKey supplied) ───────────────────
-    if (!provided) {
-      return jsonOut({ ok: true, message: "Web App is live." });
-    }
-
-    // ── Validate key ─────────────────────────────────────────
-    var keys      = getKeys();
-    var isSuper   = (provided === keys.supervisorKey);
-    var isQuality = (provided === keys.qualityKey);
-
-    if (!isSuper && !isQuality) {
-      Logger.log("doGet: Unauthorized attempt with key: " + provided);
-      return jsonOut({ ok: false, error: "Unauthorized" });
-    }
-
-    // ── Auth-only (no data params) – used by supervisor login ─
+    // ── Health check (no data params) ────────────────────────
     var hasDataParams = params.date || params.start || params.end ||
                         params.branch || params.agent;
     if (!hasDataParams) {
-      return jsonOut({ ok: true, role: isQuality ? "quality" : "supervisor" });
-    }
-
-    // ── Data fetch – requires quality key ────────────────────
-    if (!isQuality) {
-      return jsonOut({ ok: false, error: "Quality key required for data access." });
+      return jsonOut({ ok: true, message: "Web App is live." });
     }
 
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
@@ -177,15 +156,6 @@ function doPost(e) {
       }
     } else {
       data = e.parameter || {};
-    }
-
-    // ── Auth ──────────────────────────────────────────────────
-    var keys     = getKeys();
-    var provided = (data.authKey || "").trim();
-    if (!provided ||
-        (provided !== keys.supervisorKey && provided !== keys.qualityKey)) {
-      Logger.log("doPost: Unauthorized key: " + provided);
-      return jsonOut({ ok: false, error: "Unauthorized" });
     }
 
     // ── Required field validation ─────────────────────────────

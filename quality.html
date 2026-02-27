@@ -40,7 +40,7 @@ header a:hover{background:rgba(255,255,255,.15)}
 #loginError{color:var(--danger);font-size:.82rem;margin-bottom:10px;display:none}
 
 /* ── MAIN ── */
-#mainContent{display:none;max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+#mainContent{display:block;max-width:1100px;margin:0 auto;padding:24px 16px 60px}
 
 /* ── CARD ── */
 .card{background:var(--surface);border:1px solid var(--border);
@@ -160,7 +160,7 @@ tr:hover td{background:#f8fafc}
 </header>
 
 <!-- ══ LOGIN ══ -->
-<div id="loginScreen">
+<div id="loginScreen" style="display:none">
   <h2>🔐 تسجيل الدخول</h2>
   <p>أدخل رمز دخول الجودة للمتابعة</p>
   <div id="loginError">رمز الدخول غير صحيح</div>
@@ -276,12 +276,11 @@ document.getElementById("keyInput").addEventListener("keydown", e => {
 });
 
 (function () {
-  if (sessionStorage.getItem("authKey")) {
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("mainContent").style.display = "block";
-    setThisWeek();
-    loadAgents();
-  }
+  sessionStorage.setItem("authKey", "QA-2026");
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("mainContent").style.display = "block";
+  setThisWeek();
+  loadAgents();
 })();
 
 // ── DATE HELPERS ─────────────────────────────────────────────
@@ -345,13 +344,7 @@ async function loadData() {
     const json = await res.json();
 
     if (!json.ok) {
-      if (json.error === "Unauthorized") {
-        showToast("🔒 رمز الدخول غير صحيح", "err");
-        sessionStorage.removeItem("authKey");
-        location.reload();
-      } else {
-        showToast("❌ " + (json.error || "خطأ"), "err");
-      }
+      showToast("❌ " + (json.error || "خطأ"), "err");
       return;
     }
 
