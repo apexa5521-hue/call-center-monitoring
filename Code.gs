@@ -79,11 +79,26 @@ function doGet(e) {
   try {
     var params   = e.parameter || {};
 
-    // ── Health check (no data params) ────────────────────────
+    // ── Health check (no params at all) ──────────────────────
     var hasDataParams = params.date || params.start || params.end ||
                         params.branch || params.agent;
-    if (!hasDataParams) {
+    if (!params.authKey && !hasDataParams) {
       return jsonOut({ ok: true, message: "Web App is live." });
+    }
+
+    // ── Auth validation ───────────────────────────────────────
+    var keys    = getKeys();
+    var authKey = params.authKey || "";
+    var role    = "";
+    if (authKey === keys.supervisorKey)      { role = "supervisor"; }
+    else if (authKey === keys.qualityKey)    { role = "quality"; }
+    else {
+      return jsonOut({ ok: false, error: "Unauthorized" });
+    }
+
+    // ── Auth-only request (no data params) ───────────────────
+    if (!hasDataParams) {
+      return jsonOut({ ok: true, role: role });
     }
 
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
@@ -156,6 +171,13 @@ function doPost(e) {
       }
     } else {
       data = e.parameter || {};
+    }
+
+    // ── Auth validation ───────────────────────────────────────
+    var keys = getKeys();
+    if (!data.authKey || data.authKey !== keys.supervisorKey) {
+      Logger.log("doPost: Unauthorized authKey: " + data.authKey);
+      return jsonOut({ ok: false, error: "Unauthorized" });
     }
 
     // ── Required field validation ─────────────────────────────
