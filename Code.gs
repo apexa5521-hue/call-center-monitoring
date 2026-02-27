@@ -6,7 +6,7 @@
 // Sheet tab name – must exist in the bound spreadsheet
 var SHEET_NAME = "DailyMetrics";
 
-// Expected columns (for documentation; row order must match appendRow call in doPost)
+// Expected columns (row order must match appendRow call in doPost)
 var HEADERS = [
   "Timestamp", "Date", "Branch", "AgentName",
   "TotalCalls", "AnsweredCalls", "UnansweredEOD",
@@ -15,14 +15,38 @@ var HEADERS = [
 ];
 
 // ── Run ONCE manually from the Apps Script editor ───────────
-// Select "setupKeys" from the function dropdown and click Run.
-// This stores the auth keys in Script Properties.
+// 1. Select "setupKeys" from the function dropdown and click Run.
+//    This stores the auth keys in Script Properties.
+// 2. Select "setupHeaders" and click Run to create the header row.
 function setupKeys() {
   PropertiesService.getScriptProperties().setProperties({
     SUPERVISOR_KEY: "RW-2026",
     QUALITY_KEY:    "QA-2026"
   });
   Logger.log("✅ Keys set: SUPERVISOR_KEY=RW-2026, QUALITY_KEY=QA-2026");
+}
+
+// Creates the DailyMetrics sheet (if missing) and writes the header row.
+function setupHeaders() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    Logger.log('✅ Sheet "' + SHEET_NAME + '" created.');
+  }
+
+  // Only write headers if the sheet is empty
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+    // Bold + freeze the header row
+    var headerRange = sheet.getRange(1, 1, 1, HEADERS.length);
+    headerRange.setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    Logger.log("✅ Headers written to " + SHEET_NAME);
+  } else {
+    Logger.log("ℹ️ Sheet already has data – headers not overwritten.");
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -77,15 +101,35 @@ function toYesNo(val) {
 //
 function doGet(e) {
   try {
-    var params   = e.parameter || {};
+    var params = e.parameter || {};
+    var keys   = getKeys();
 
-    // ── Health check (no data params) ────────────────────────
-    var hasDataParams = params.date || params.start || params.end ||
-                        params.branch || params.agent;
-    if (!hasDataParams) {
+    // ── Health check (no params at all) ───────────────────────
+    if (!params.authKey && !params.date && !params.start &&
+        !params.end && !params.branch && !params.agent) {
       return jsonOut({ ok: true, message: "Web App is live." });
     }
 
+    // ── Auth validation ───────────────────────────────────────
+    var authKey      = params.authKey || "";
+    var isSupervisor = keys.supervisorKey && (authKey === keys.supervisorKey);
+    var isQuality    = keys.qualityKey    && (authKey === keys.qualityKey);
+
+    if (!isSupervisor && !isQuality) {
+      Logger.log("doGet: Unauthorized attempt with key: " + authKey);
+      return jsonOut({ ok: false, error: "Unauthorized" });
+    }
+
+    var role = isSupervisor ? "supervisor" : "quality";
+
+    // ── Auth check only (no data params) ─────────────────────
+    var hasDataParams = params.date || params.start || params.end ||
+                        params.branch || params.agent;
+    if (!hasDataParams) {
+      return jsonOut({ ok: true, role: role });
+    }
+
+    // ── Data fetch ────────────────────────────────────────────
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
@@ -158,11 +202,19 @@ function doPost(e) {
       data = e.parameter || {};
     }
 
+    // ── Auth validation ───────────────────────────────────────
+    var keys    = getKeys();
+    var authKey = data.authKey || "";
+    if (!authKey || authKey !== keys.supervisorKey) {
+      Logger.log("doPost: Unauthorized attempt with key: " + authKey);
+      return jsonOut({ ok: false, error: "Unauthorized" });
+    }
+
     // ── Required field validation ─────────────────────────────
     var errs = [];
-    if (!data.Date)                          errs.push("Date required");
-    if (!data.Branch)                        errs.push("Branch required");
-    if (!data.AgentName || !String(data.AgentName).trim()) errs.push("AgentName required");
+    if (!data.Date)                                          errs.push("Date required");
+    if (!data.Branch)                                        errs.push("Branch required");
+    if (!data.AgentName || !String(data.AgentName).trim())  errs.push("AgentName required");
     if (errs.length) {
       Logger.log("doPost validation errors: " + errs.join("; "));
       return jsonOut({ ok: false, error: errs.join("; ") });
@@ -183,7 +235,7 @@ function doPost(e) {
       return jsonOut({
         ok: false,
         error: 'Sheet tab "' + SHEET_NAME + '" not found. ' +
-               'Please create it in the spreadsheet first.'
+               'Run setupHeaders() from the Apps Script editor first.'
       });
     }
 
