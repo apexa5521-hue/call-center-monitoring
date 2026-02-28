@@ -562,7 +562,9 @@ function shareEmail() {
   var ans   = parseInt(d.AnsweredCalls, 10) || 0;
   var rate  = total > 0 ? (ans / total * 100).toFixed(1) : "0.0";
 
-  var subject = "تقرير يومي – " + d.Branch + " – " + d.Date;
+  var dateParts = d.Date.split("-");
+  var dateAr = dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0]; // DD/MM/YYYY
+  var subject = "تقرير يومي | " + dateAr + " | " + d.Branch;
 
   var body = [
     "تقرير يومي – ApexCare",
