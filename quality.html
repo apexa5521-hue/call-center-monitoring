@@ -253,12 +253,31 @@ function setThisMonth() {
   document.getElementById("f-end").value   = fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 }
 
+// ── JSONP (يتجاوز CORS تلقائياً) ─────────────────────────────
+function fetchJSONP(url) {
+  return new Promise(function(resolve, reject) {
+    const cb = "_cb" + Date.now();
+    const script = document.createElement("script");
+    window[cb] = function(data) {
+      delete window[cb];
+      script.remove();
+      resolve(data);
+    };
+    script.onerror = function() {
+      delete window[cb];
+      script.remove();
+      reject(new Error("فشل الاتصال"));
+    };
+    script.src = url + "&callback=" + cb;
+    document.head.appendChild(script);
+  });
+}
+
 // ── LOAD AGENTS ──────────────────────────────────────────────
 async function loadAgents() {
   const authKey = sessionStorage.getItem("authKey") || "";
   try {
-    const res  = await fetch(`${API_URL}?authKey=${encodeURIComponent(authKey)}&start=2020-01-01&end=2099-12-31`);
-    const json = await res.json();
+    const json = await fetchJSONP(`${API_URL}?authKey=${encodeURIComponent(authKey)}&start=2020-01-01&end=2099-12-31`);
     if (!json.ok) return;
     const sel = document.getElementById("f-agent");
     sel.innerHTML = '<option value="all">الكل</option>';
@@ -292,8 +311,7 @@ async function loadData() {
   if (agent  !== "all") url += `&agent=${encodeURIComponent(agent)}`;
 
   try {
-    const res  = await fetch(url);
-    const json = await res.json();
+    const json = await fetchJSONP(url);
 
     if (!json.ok) {
       showToast("❌ " + (json.error || "خطأ"), "err");
@@ -304,7 +322,7 @@ async function loadData() {
     renderDashboard(currentRows);
 
   } catch (err) {
-    showToast("❌ تعذّر الاتصال – تحقق من API_URL", "err");
+    showToast("❌ تعذّر الاتصال – أعد نشر Apps Script", "err");
     console.error(err);
   } finally {
     btn.disabled = false; btn.classList.remove("loading");
