@@ -27,43 +27,6 @@ header a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;
   border:1px solid rgba(255,255,255,.4);padding:6px 14px;border-radius:7px;transition:.2s}
 header a:hover{background:rgba(255,255,255,.15)}
 
-/* ── LOGIN SCREEN ── */
-#loginScreen{
-  max-width:380px;margin:80px auto 0;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius);
-  padding:36px 32px;box-shadow:0 4px 24px rgba(0,0,0,.08);
-  text-align:center;
-}
-#loginScreen h2{font-size:1.2rem;font-weight:800;margin-bottom:6px}
-#loginScreen p{font-size:.85rem;color:var(--muted);margin-bottom:24px}
-#loginScreen input{
-  width:100%;padding:11px 14px;border:1.5px solid var(--border);
-  border-radius:10px;font-family:'Tajawal',sans-serif;font-size:1rem;
-  text-align:center;letter-spacing:3px;margin-bottom:12px;
-  transition:.2s;direction:ltr;
-}
-#loginScreen input:focus{outline:none;border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(29,78,216,.12)}
-#loginScreen input.shake{animation:shake .35s ease}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-#loginError{color:var(--danger);font-size:.82rem;margin-bottom:10px;min-height:1.1em;display:none}
-
-/* Login button loading state */
-.btn-login{
-  background:var(--accent);color:#fff;width:100%;padding:12px;
-  border:none;border-radius:10px;cursor:pointer;
-  font-family:'Tajawal',sans-serif;font-size:.95rem;font-weight:700;
-  transition:.18s;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-}
-.btn-login:hover:not(:disabled){background:var(--accent-h)}
-.btn-login:disabled{opacity:.6;cursor:not-allowed}
-.login-spin{
-  width:16px;height:16px;border:2px solid rgba(255,255,255,.35);
-  border-top-color:#fff;border-radius:50%;animation:rot .65s linear infinite;display:none;
-}
-.btn-login.loading .login-spin{display:block}
-.btn-login.loading .login-txt{display:none}
-
 /* ── MAIN ── */
 #mainContent{display:block;max-width:820px;margin:0 auto;padding:28px 16px 60px}
 .page-head{margin-bottom:22px}
@@ -203,20 +166,8 @@ input.err,select.err{border-color:var(--danger)}
 
 <header>
   <h1>📞 ApexCare – متابعة المشرفة</h1>
+  <a href="quality.html">📊 لوحة الجودة</a>
 </header>
-
-<!-- ══ LOGIN ══ -->
-<div id="loginScreen" style="display:none">
-  <h2>🔐 تسجيل الدخول</h2>
-  <p>أدخل رمز الدخول للمتابعة</p>
-  <div id="loginError"></div>
-  <input type="password" id="keyInput" placeholder="رمز الدخول"
-         autocomplete="off" maxlength="20">
-  <button class="btn-login" id="loginBtn">
-    <div class="login-spin"></div>
-    <span class="login-txt">دخول</span>
-  </button>
-</div>
 
 <!-- ══ MAIN ══ -->
 <div id="mainContent" style="display:block">
@@ -365,77 +316,9 @@ input.err,select.err{border-color:var(--danger)}
 var API_URL = "https://script.google.com/macros/s/AKfycbxeZDOAj8BAP0NpQy94YzHr-GTzKE4CSwzK4ORf6SzR6VBqDIbE1FRFX64Hb4Cajs6X-g/exec";
 
 // ══════════════════════════════════════════════════════════════
-// LOGIN
-// Validates the entered key against the Apps Script Web App
-// via a CORS-safe GET request before storing in sessionStorage.
+// INIT – no login required
 // ══════════════════════════════════════════════════════════════
-function showLoginError(msg) {
-  var el = document.getElementById("loginError");
-  el.textContent = msg;
-  el.style.display = "block";
-  var inp = document.getElementById("keyInput");
-  inp.classList.add("shake");
-  setTimeout(function() { inp.classList.remove("shake"); }, 400);
-}
-
-function hideLoginError() {
-  var el = document.getElementById("loginError");
-  el.style.display = "none";
-  el.textContent = "";
-}
-
-function enterApp() {
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("mainContent").style.display  = "block";
-}
-
-function returnToLogin() {
-  sessionStorage.removeItem("authKey");
-  document.getElementById("mainContent").style.display  = "none";
-  document.getElementById("loginScreen").style.display  = "block";
-  document.getElementById("keyInput").value = "";
-}
-
-document.getElementById("loginBtn").addEventListener("click", doLogin);
-document.getElementById("keyInput").addEventListener("keydown", function(e) {
-  if (e.key === "Enter") doLogin();
-});
-
-async function doLogin() {
-  hideLoginError();
-  var key = document.getElementById("keyInput").value.trim();
-  if (!key) { showLoginError("الرجاء إدخال رمز الدخول"); return; }
-
-  var btn = document.getElementById("loginBtn");
-  btn.disabled = true;
-  btn.classList.add("loading");
-
-  try {
-    // doGet with ?authKey=KEY is a simple CORS GET – no preflight needed
-    var res  = await fetch(API_URL + "?authKey=" + encodeURIComponent(key));
-    var json = await res.json();
-
-    if (json.ok) {
-      sessionStorage.setItem("authKey", key);
-      enterApp();
-    } else {
-      showLoginError("رمز الدخول غير صحيح");
-    }
-  } catch (err) {
-    // Network / CORS failure – show descriptive error
-    console.error("Login fetch error:", err);
-    showLoginError("تعذّر الاتصال بالخادم – تحقق من الاتصال بالإنترنت");
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove("loading");
-  }
-}
-
-// Auto-enter app without requiring login
-(function() {
-  sessionStorage.setItem("authKey", "RW-2026");
-  enterApp();
-})();
+sessionStorage.setItem("authKey", "RW-2026");
 
 // ══════════════════════════════════════════════════════════════
 // DATE DEFAULT
