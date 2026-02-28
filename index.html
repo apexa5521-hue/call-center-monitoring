@@ -163,13 +163,46 @@ input.err,select.err{border-color:var(--danger)}
 @media(max-width:600px){
   .grid-3,.grid-2{grid-template-columns:1fr}
 }
+
+/* ── PDF SECTION ── */
+.pdf-preview{
+  border:1px solid var(--border);border-radius:10px;padding:16px;
+  background:#f8fafc;font-size:.92rem;line-height:1.8;
+}
+.pdf-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid #e2e8f0;gap:12px;
+}
+.pdf-row:last-child{border-bottom:none}
+.pdf-label{color:var(--muted);font-weight:600;flex-shrink:0}
+.pdf-val{font-weight:700;text-align:left}
+.pdf-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn-green{background:#16a34a}
+.btn-green:hover:not(:disabled){background:#15803d}
+.btn-email{background:#ea4335}
+.btn-email:hover:not(:disabled){background:#c5221f}
+
+/* ── PRINT ── */
+@media print{
+  header,#reportForm,#kpiStrip,.pdf-actions,#toast{display:none!important}
+  body{background:#fff}
+  #mainContent{padding:0;max-width:100%}
+  #pdfSection{display:block!important}
+  .card{box-shadow:none!important;border:1px solid #ccc!important}
+  #printHeader{display:block!important}
+}
+#printHeader{
+  display:none;text-align:center;margin-bottom:20px;
+  padding-bottom:14px;border-bottom:2px solid #1d4ed8;
+}
+#printHeader h2{font-size:1.4rem;font-weight:800;color:#1d4ed8}
+#printHeader p{color:#64748b;font-size:.82rem;margin-top:4px}
 </style>
 </head>
 <body>
 
 <header>
   <h1>📞 ApexCare – متابعة المشرفة</h1>
-  <a href="quality.html">📊 لوحة الجودة</a>
 </header>
 
 <!-- ══ LOGIN ══ -->
@@ -190,6 +223,27 @@ input.err,select.err{border-color:var(--danger)}
   <div class="page-head">
     <h2>📋 تقرير يومي</h2>
     <p>إدخال بيانات أداء الموظفة</p>
+  </div>
+
+  <!-- ══ PDF SECTION ══ -->
+  <div id="pdfSection" style="display:none">
+    <div class="card">
+      <div class="card-title">📄 التقرير جاهز للإرسال</div>
+      <!-- يظهر فقط عند الطباعة -->
+      <div id="printHeader">
+        <h2>ApexCare – تقرير يومي لمركز الاتصال</h2>
+        <p id="printDate"></p>
+      </div>
+      <div id="pdfPreview" class="pdf-preview"></div>
+      <div class="pdf-actions">
+        <button onclick="printPDF()" class="btn-primary btn-green" style="width:auto;padding:10px 22px">
+          🖨️ طباعة / حفظ PDF
+        </button>
+        <button onclick="shareEmail()" class="btn-primary btn-email" style="width:auto;padding:10px 22px">
+          📧 إرسال عبر الإيميل
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- KPI Strip (shown after successful submission) -->
@@ -498,6 +552,7 @@ document.getElementById("reportForm").addEventListener("submit", async function(
     // Response is opaque with no-cors; treat resolved promise as success
     showToast("✅ تم الإرسال بنجاح", "ok");
     showKPIs(payload);
+    buildPDFPreview(payload);
     resetForm();
 
   } catch (err) {
@@ -567,6 +622,88 @@ function resetForm() {
   document.getElementById("ci-no").checked = true;
   document.getElementById("ui-no").checked = true;
   clearAllErrors();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PDF REPORT + WHATSAPP
+// ══════════════════════════════════════════════════════════════
+var _lastPayload = null;
+
+function buildPDFPreview(d) {
+  var total = parseInt(d.TotalCalls, 10)          || 0;
+  var ans   = parseInt(d.AnsweredCalls, 10)       || 0;
+  var unans = parseInt(d.UnansweredEOD, 10)       || 0;
+  var cbc   = parseInt(d.CallbacksCompleted, 10)  || 0;
+  var cbm   = parseInt(d.CallbackTimeMinutes, 10) || 0;
+  var rate  = total > 0 ? (ans / total * 100).toFixed(1) : "0.0";
+
+  var rows = [
+    ["📅 التاريخ",                   d.Date],
+    ["🏢 الفرع",                     d.Branch],
+    ["👤 اسم الموظفة",               d.AgentName],
+    ["📞 إجمالي المكالمات الواردة",  total],
+    ["✅ المكالمات المُجاب عليها",   ans],
+    ["📊 معدل الرد",                 rate + "%"],
+    ["📵 غير مُجاب نهاية اليوم",    unans],
+    ["🔄 إعادة الاتصال المنجزة",    cbc],
+    ["⏱️ مدة إعادة الاتصال",        cbm + " دقيقة"],
+    ["⚠️ مشكلة في المكالمات",       d.CallIssues === "Yes" ? "نعم 🔴" : "لا ✅"],
+    ["📡 مشكلة في الرقم الموحد",    d.UnifiedNumberIssues === "Yes" ? "نعم 🔴" : "لا ✅"],
+    ["📝 ملاحظات",                   d.Notes || "—"]
+  ];
+
+  var html = rows.map(function(r) {
+    return '<div class="pdf-row">' +
+           '<span class="pdf-label">' + r[0] + '</span>' +
+           '<span class="pdf-val">'   + r[1] + '</span>' +
+           '</div>';
+  }).join("");
+
+  document.getElementById("pdfPreview").innerHTML = html;
+  document.getElementById("printDate").textContent =
+    "تاريخ التقرير: " + d.Date + "  |  وقت الإنشاء: " +
+    new Date().toLocaleTimeString("ar-SA");
+
+  document.getElementById("pdfSection").style.display = "block";
+  document.getElementById("pdfSection").scrollIntoView({ behavior: "smooth" });
+  _lastPayload = d;
+}
+
+function printPDF() {
+  window.print();
+}
+
+function shareEmail() {
+  if (!_lastPayload) return;
+  var d     = _lastPayload;
+  var total = parseInt(d.TotalCalls, 10)    || 0;
+  var ans   = parseInt(d.AnsweredCalls, 10) || 0;
+  var rate  = total > 0 ? (ans / total * 100).toFixed(1) : "0.0";
+
+  var subject = "تقرير يومي – " + d.Branch + " – " + d.Date;
+
+  var body = [
+    "تقرير يومي – ApexCare",
+    "================================",
+    "التاريخ:      " + d.Date,
+    "الفرع:        " + d.Branch,
+    "الموظفة:      " + d.AgentName,
+    "================================",
+    "إجمالي المكالمات الواردة:    " + total,
+    "المكالمات المُجاب عليها:     " + ans,
+    "معدل الرد:                   " + rate + "%",
+    "غير مُجاب نهاية اليوم:      " + (parseInt(d.UnansweredEOD, 10) || 0),
+    "إعادة الاتصال المنجزة:       " + (parseInt(d.CallbacksCompleted, 10) || 0),
+    "مدة إعادة الاتصال (دقيقة):  " + (parseInt(d.CallbackTimeMinutes, 10) || 0),
+    "================================",
+    "مشكلة في المكالمات:          " + (d.CallIssues === "Yes" ? "نعم" : "لا"),
+    "مشكلة في الرقم الموحد:       " + (d.UnifiedNumberIssues === "Yes" ? "نعم" : "لا")
+  ];
+  if (d.Notes) body.push("ملاحظات: " + d.Notes);
+
+  window.location.href = "mailto:apexa5521@gmail.com" +
+    "?subject=" + encodeURIComponent(subject) +
+    "&body="    + encodeURIComponent(body.join("\n"));
 }
 
 // ══════════════════════════════════════════════════════════════
