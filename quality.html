@@ -187,6 +187,10 @@ tr:hover td{background:#f8fafc}
 .empty{text-align:center;padding:44px 20px;color:var(--muted)}
 .empty .ico{font-size:2.5rem;margin-bottom:10px}
 
+/* ── SHEETS EMBED ── */
+.sheets-wrap{width:100%;overflow:hidden;border-radius:8px;border:1px solid var(--border)}
+.sheets-wrap iframe{width:100%;height:520px;display:block;border:none}
+
 /* ── TOAST ── */
 #toast{position:fixed;bottom:22px;left:50%;
   transform:translateX(-50%) translateY(70px);background:#1e293b;color:#fff;
@@ -329,6 +333,18 @@ tr:hover td{background:#f8fafc}
   <div id="emptyState" class="empty card">
     <div class="ico">📊</div>
     <p>اختر النطاق الزمني واضغط «تحديث» لعرض البيانات</p>
+  </div>
+
+  <!-- Embedded Google Sheets -->
+  <div class="card">
+    <div class="card-title"><span>📄 جدول البيانات المباشر</span></div>
+    <div class="sheets-wrap">
+      <iframe
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQA9AnTBYXBdhmNMp4BmeZzxNV008ScHoNSe9PCslBFSxbaaUu3an5iaf_rOkIPiXVMje5mog9yoYny/pubhtml?gid=0&single=true&widget=true&headers=false"
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+    </div>
   </div>
 
 </div>
