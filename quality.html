@@ -24,80 +24,6 @@ header a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;
   border:1px solid rgba(255,255,255,.4);padding:6px 14px;border-radius:7px;transition:.2s}
 header a:hover{background:rgba(255,255,255,.15)}
 
-/* ── LOGIN ── */
-#loginScreen{
-  max-width:400px;margin:60px auto 0;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius);
-  padding:40px 36px 36px;box-shadow:0 8px 32px rgba(0,0,0,.12);
-  text-align:center;
-}
-#loginScreen .login-logo{
-  width:56px;height:56px;background:var(--accent);border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.6rem;margin:0 auto 18px;
-  box-shadow:0 4px 12px rgba(29,78,216,.3);
-}
-#loginScreen h2{font-size:1.25rem;font-weight:800;margin-bottom:5px;color:var(--text)}
-#loginScreen .login-sub{font-size:.83rem;color:var(--muted);margin-bottom:28px}
-.login-field{text-align:right;margin-bottom:14px}
-.login-field label{
-  display:block;font-size:.76rem;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;
-}
-.login-input-wrap{position:relative}
-.login-input-wrap input{
-  width:100%;padding:11px 14px;border:1.5px solid var(--border);
-  border-radius:10px;font-family:'Tajawal',sans-serif;font-size:.95rem;
-  color:var(--text);background:#fff;transition:.2s;direction:rtl;
-}
-.login-input-wrap input:focus{
-  outline:none;border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(29,78,216,.12);
-}
-.login-input-wrap input.field-err{border-color:var(--danger)}
-.login-input-wrap input.shake{animation:shake .35s ease}
-.pw-toggle{
-  position:absolute;top:50%;left:12px;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;color:var(--muted);
-  font-size:.88rem;padding:2px 4px;line-height:1;transition:.15s;
-}
-.pw-toggle:hover{color:var(--accent)}
-.login-input-wrap input[type=password],.login-input-wrap input[type=text]{
-  padding-left:38px;
-}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-#loginError{
-  background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;
-  font-size:.82rem;border-radius:8px;padding:8px 12px;
-  margin-bottom:14px;display:none;text-align:right;
-}
-.btn-login{
-  background:var(--accent);color:#fff;width:100%;padding:12px;
-  border:none;border-radius:10px;cursor:pointer;
-  font-family:'Tajawal',sans-serif;font-size:.95rem;font-weight:700;
-  transition:.18s;display:inline-flex;align-items:center;
-  justify-content:center;gap:8px;margin-top:4px;
-}
-.btn-login:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(29,78,216,.25)}
-.btn-login:disabled{opacity:.6;cursor:not-allowed}
-.btn-login .login-spin{
-  width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
-  border-top-color:#fff;border-radius:50%;animation:rot .65s linear infinite;display:none;
-}
-@keyframes rot{to{transform:rotate(360deg)}}
-.btn-login.loading .login-spin{display:block}
-.btn-login.loading .login-txt{display:none}
-.login-divider{
-  display:flex;align-items:center;gap:10px;color:var(--muted);
-  font-size:.75rem;margin:18px 0 14px;
-}
-.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border)}
-.login-hint{
-  background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
-  padding:8px 12px;font-size:.78rem;color:#1e40af;text-align:right;
-  line-height:1.6;
-}
-
 /* ── MAIN ── */
 #mainContent{display:block;max-width:1100px;margin:0 auto;padding:24px 16px 60px}
 
@@ -303,9 +229,10 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyOIYbNFsg0cb0JokTnCJlU
 
 <script>
 // ── INIT ─────────────────────────────────────────────────────
-// Use fixed auth key – no login required
 sessionStorage.setItem("authKey", "QA-2026");
-setThisWeek();
+const _today = new Date().toISOString().slice(0,10);
+document.getElementById("f-start").value = _today;
+document.getElementById("f-end").value   = _today;
 loadAgents();
 
 // ── DATE HELPERS ─────────────────────────────────────────────
