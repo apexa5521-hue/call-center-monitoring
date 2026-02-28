@@ -3,7 +3,10 @@
 // ApexCare Call Center – Daily Metrics Submission Handler
 // ============================================================
 
-// Sheet tab name – must exist in the bound spreadsheet
+// Google Spreadsheet ID (from the spreadsheet URL)
+var SPREADSHEET_ID = "1N5nizvJNammMierVRZ3Yt9FACZuszpo90Vpx2sWi6sA";
+
+// Sheet tab name
 var SHEET_NAME = "DailyMetrics";
 
 // Expected columns (for documentation; row order must match appendRow call in doPost)
@@ -23,6 +26,32 @@ function setupKeys() {
     QUALITY_KEY:    "QA-2026"
   });
   Logger.log("✅ Keys set: SUPERVISOR_KEY=RW-2026, QUALITY_KEY=QA-2026");
+}
+
+// ── Run ONCE to initialise the DailyMetrics sheet with headers ─
+// Select "setupSheet" from the function dropdown and click Run.
+function setupSheet() {
+  var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    Logger.log("✅ Created sheet: " + SHEET_NAME);
+  }
+  // Only write headers if the sheet is empty
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "Timestamp", "Date", "Branch", "AgentName",
+      "TotalCalls", "AnsweredCalls", "UnansweredEOD",
+      "CallbacksCompleted", "CallbackTimeMinutes",
+      "CallIssues", "UnifiedNumberIssues", "Notes"
+    ]);
+    // Freeze the header row
+    sheet.setFrozenRows(1);
+    Logger.log("✅ Headers written to " + SHEET_NAME);
+  } else {
+    Logger.log("ℹ️ Sheet already has data – headers not overwritten.");
+  }
+  Logger.log("✅ setupSheet complete. Spreadsheet ID: " + SPREADSHEET_ID);
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -86,7 +115,7 @@ function doGet(e) {
       return jsonOut({ ok: true, message: "Web App is live." });
     }
 
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
       return jsonOut({ ok: false, error: 'Sheet "' + SHEET_NAME + '" not found.' });
@@ -176,7 +205,7 @@ function doPost(e) {
     var cbcMins  = toNum(data.CallbackTimeMinutes);
 
     // ── Sheet lookup ──────────────────────────────────────────
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
       Logger.log("doPost: Sheet not found: " + SHEET_NAME);
