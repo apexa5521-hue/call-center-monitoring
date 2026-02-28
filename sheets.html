@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ApexCare – جدول البيانات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4f8;--surface:#ffffff;--border:#dde3ec;
+  --accent:#1d4ed8;--accent-h:#1e40af;
+  --text:#1e293b;--muted:#64748b;--radius:12px;
+}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+header{
+  background:var(--accent);color:#fff;
+  padding:14px 24px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;flex-wrap:wrap;
+  flex-shrink:0;
+}
+header h1{font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:8px}
+.header-links{display:flex;gap:8px;flex-wrap:wrap}
+header a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;
+  border:1px solid rgba(255,255,255,.4);padding:6px 14px;border-radius:7px;transition:.2s}
+header a:hover{background:rgba(255,255,255,.15)}
+
+/* ── CONTENT ── */
+#content{flex:1;display:flex;flex-direction:column;padding:20px 16px 24px;max-width:1200px;width:100%;margin:0 auto}
+
+.page-head{margin-bottom:16px}
+.page-head h2{font-size:1.2rem;font-weight:800}
+.page-head p{color:var(--muted);font-size:.85rem;margin-top:3px}
+
+/* ── SHEET CARD ── */
+.sheet-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.06);
+  overflow:hidden;flex:1;display:flex;flex-direction:column;
+}
+.sheet-card-title{
+  font-size:.9rem;font-weight:700;color:var(--accent);
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.sheet-wrapper{flex:1;min-height:600px;position:relative}
+.sheet-wrapper iframe{
+  width:100%;height:100%;min-height:600px;border:none;display:block;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📄 ApexCare – جدول البيانات</h1>
+  <div class="header-links">
+    <a href="index.html">📋 متابعة المشرفة</a>
+    <a href="quality.html">📊 لوحة الجودة</a>
+  </div>
+</header>
+
+<div id="content">
+  <div class="page-head">
+    <h2>📊 جدول بيانات Google Sheets</h2>
+    <p>عرض مباشر لجدول البيانات المرتبط بالنظام</p>
+  </div>
+
+  <div class="sheet-card">
+    <div class="sheet-card-title">📋 البيانات المباشرة</div>
+    <div class="sheet-wrapper">
+      <iframe
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQA9AnTBYXBdhmNMp4BmeZzxNV008ScHoNSe9PCslBFSxbaaUu3an5iaf_rOkIPiXVMje5mog9yoYny/pubhtml?gid=0&single=true&widget=true&headers=false"
+        title="جدول بيانات ApexCare"
+        allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
