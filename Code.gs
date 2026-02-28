@@ -64,9 +64,15 @@ function getKeys() {
   };
 }
 
-function jsonOut(obj) {
+function jsonOut(obj, callback) {
+  var str = JSON.stringify(obj);
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + "(" + str + ")")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService
-    .createTextOutput(JSON.stringify(obj))
+    .createTextOutput(str)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -105,37 +111,50 @@ function toYesNo(val) {
 //   GET ?authKey=QA-KEY&date=...  → spreadsheet rows (quality dashboard)
 //
 function doGet(e) {
-  try {
-    var params   = e.parameter || {};
+  var params   = e.parameter || {};
+  var callback = params.callback || null;
 
+  try {
     // ── Health check (no data params) ────────────────────────
     var hasDataParams = params.date || params.start || params.end ||
                         params.branch || params.agent;
     if (!hasDataParams) {
-      return jsonOut({ ok: true, message: "Web App is live." });
+      return jsonOut({ ok: true, message: "Web App is live." }, callback);
     }
 
     var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
-      return jsonOut({ ok: false, error: 'Sheet "' + SHEET_NAME + '" not found.' });
+      return jsonOut({ ok: false, error: 'Sheet "' + SHEET_NAME + '" not found.' }, callback);
     }
 
     var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return jsonOut({ ok: true, rows: [], agents: [] });
+    if (data.length <= 1) return jsonOut({ ok: true, rows: [], agents: [] }, callback);
 
     var hdrs = data[0];
+    var tz   = Session.getScriptTimeZone();
+
     var rows = data.slice(1).map(function(r) {
       var obj = {};
-      hdrs.forEach(function(h, i) { obj[h] = r[i]; });
+      hdrs.forEach(function(h, i) {
+        // Convert Date objects to YYYY-MM-DD strings
+        if (r[i] instanceof Date) {
+          obj[h] = Utilities.formatDate(r[i], tz, "yyyy-MM-dd");
+        } else {
+          obj[h] = r[i];
+        }
+      });
       return obj;
     });
 
     // Optional filters
     if (params.date) {
-      rows = rows.filter(function(r) { return r.Date === params.date; });
+      rows = rows.filter(function(r) { return String(r.Date).slice(0,10) === params.date; });
     } else if (params.start && params.end) {
-      rows = rows.filter(function(r) { return r.Date >= params.start && r.Date <= params.end; });
+      rows = rows.filter(function(r) {
+        var d = String(r.Date).slice(0, 10);
+        return d >= params.start && d <= params.end;
+      });
     }
     if (params.branch && params.branch !== "all") {
       rows = rows.filter(function(r) { return r.Branch === params.branch; });
@@ -149,14 +168,14 @@ function doGet(e) {
     var seen     = {};
     data.slice(1).forEach(function(r) {
       var a = r[agentIdx];
-      if (a && !seen[a]) { seen[a] = true; agents.push(a); }
+      if (a && !seen[a]) { seen[a] = true; agents.push(String(a)); }
     });
 
-    return jsonOut({ ok: true, rows: rows, agents: agents });
+    return jsonOut({ ok: true, rows: rows, agents: agents }, callback);
 
   } catch (err) {
     Logger.log("doGet ERROR: " + err.message);
-    return jsonOut({ ok: false, error: err.message });
+    return jsonOut({ ok: false, error: err.message }, callback);
   }
 }
 
